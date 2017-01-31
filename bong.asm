@@ -1,4 +1,6 @@
 ; PRE-GAME INITIALISATION
+	mov  ax, 0x07C0
+	mov  ds, ax
 	mov  ah, 0x01
 	mov  cx, 0x2000
 	int  0x10					; remove cursor blinking
@@ -26,16 +28,24 @@ game_loop:
 	call display_ball
 	call win_condition
 	call move_ball
+	mov  cx, 0x0007
+	mov  dx, 0xA120
+	mov  ah, 0x86
+	int  0x15					; sleep for 500000 nano seconds (cx:dx)
+	jmp game_loop
 
 ; GAME FUNCTIONS
 display_bat:
-	mov  cx, 4
+	mov  cx, 0x04
 	mov  al, '#'				; bat character
 .loop:							; displays the whole 4-character bat
+	push cx
 	call move_cursor			
 	call print_char
+	pop  cx
 	dec  cx
-	cmp  word cx, 0
+	inc  dh
+	cmp  cx, 0
 	jnz  .loop
 	ret
 
@@ -46,23 +56,24 @@ display_ball:
 
 win_condition:
 	cmp  dl, 0x00				; compare ball position with left-most column
-	je   display_lose			; if equal then you lose
+	je   display_right_win		; if equal then right wins
 	cmp  dl, 0x4F				; compare ball position with right-most column
-	je   display_win			; if equal then you win
+	je   display_left_win		; if equal then left wins
 	ret
 
-display_win:
+display_left_win:
 	mov  dx, 0x2414				; text position (36, 20)
-	jmp  freeze
+	mov  si, left_str
+	call print_string
+	jmp  $
 
-display_lose:
-	jmp  freeze
-
-freeze:
+display_right_win:
+	mov  dx, 0x2414				; text position (36, 20)
+	mov  si, right_str
+	call print_string
 	jmp  $
 
 move_ball:
-	push al
 	mov  ax, [ball_pos]
 	cmp  al, 0x01
 	je   .left
@@ -87,7 +98,7 @@ move_ball:
 .walls:							; checking if the ball hits the top or bottom
 	cmp  ah, 0x00
 	je   .wall_bounce
-	cmp  ah, 0x4E
+	cmp  ah, [display_width]
 	jne  .move
 .wall_bounce:					; changing the direction of the ball when bouncing off the walls
 	mov  ax, [ball_dir]
@@ -191,10 +202,13 @@ print_string:
 	ret
 
 ; VARIABLES
-	display_width	dw 0x0000
-	lbat_pos		dw 0x000A				; split x-pos:y-pos
-	rbat_pos		dw 0x4F0A				; ^
-	ball_pos		dw 0x010B				; ^
+	display_width	db 0x00
+	lbat_pos		dw 0x0A00				; split x-pos:y-pos
+	rbat_pos		dw 0x0A4F				; ^
+	ball_pos		dw 0x0B01				; ^
 	ball_dir		dw 0x0000				; split x-dir:y-dir
-	win_str			db 'LEFT WINS!', 0x00		; win text
-	lose_str		db 'RIGHT WINS!', 0x00	; lose text
+	left_str		db 'LEFT WINS!', 0x00	; win text
+	right_str		db 'RIGHT WINS!', 0x00	; lose text
+
+	times 510-($-$$) db 0
+	dw 0xAA55
