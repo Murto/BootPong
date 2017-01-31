@@ -51,6 +51,7 @@ display_bat:
 
 display_ball:
 	mov  al, '@'				; ball character
+	call move_cursor
 	call print_char
 	ret
 
