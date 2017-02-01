@@ -10,6 +10,7 @@
 	mov  ah, 0x0F
 	int  0x10					; get screen width
 	mov  [display_width], ah	; save width for later calculations
+	mov  cx, [ball_del]
 
 game_loop:
 	call clear_display			; clear display
@@ -27,17 +28,18 @@ game_loop:
 	mov  dx, [ball_pos]
 	call display_ball
 	call win_condition
+	call bounce_ball
 	call move_ball
-	mov  cx, 0x0007
-	mov  dx, 0xA120
+	mov  cx, 0x0003
+	mov  dx, 0x0000
 	mov  ah, 0x86
-	int  0x15					; sleep for 500000 nano seconds (cx:dx)
-	jmp game_loop
+	int  0x15					; sleep for 0x00070000 nano seconds (cx:dx)
+	jmp  game_loop
 
 ; GAME FUNCTIONS
 display_bat:
 	mov  cx, 0x04
-	mov  al, '#'				; bat character
+	mov  al, '|'				; bat character
 .loop:							; displays the whole 4-character bat
 	push cx
 	call move_cursor			
@@ -63,71 +65,49 @@ win_condition:
 	ret
 
 display_left_win:
-	mov  dx, 0x2414				; text position (36, 20)
+	mov  dx, 0x0422				; text position
+	call move_cursor
 	mov  si, left_str
 	call print_string
 	jmp  $
 
 display_right_win:
-	mov  dx, 0x2414				; text position (36, 20)
+	mov  dx, 0x0422				; text position
+	call move_cursor
 	mov  si, right_str
 	call print_string
 	jmp  $
 
-move_ball:
+bounce_ball:
 	mov  ax, [ball_pos]
 	cmp  al, 0x01
-	je   .left
-	cmp  al, 0x4E
-	je   .right
+	je   .left_bat
+	cmp  al, 0x2A
+	je   .right_bat
 	jmp  .walls
-.left:							; calculation to find if the ball hits the bat
+.left_bat:
 	mov  bx, [lbat_pos]
-	sub  al, bl
-	cmp  al, 0x03
-	jbe  .wall_bounce
-	jmp  .move
-.right:							; calculation to find if the ball hits the bat
+	jmp  .bat_bounce
+.right_bat:
 	mov  bx, [rbat_pos]
-	sub  al, bl
-	cmp  al, 0x03
-	jg  .move
-.bat_bounce:					; changing the direction of the ball when bouncing off the bats
+.bat_bounce:
+	sub  ah, bh
+	cmp  ah, 0x03
+	jg   .walls
 	mov  ax, [ball_dir]
-	xor  ax, 0x0100
+	xor  al, 0x01
 	mov  [ball_dir], ax
-.walls:							; checking if the ball hits the top or bottom
+.walls:
+	mov  ax, [ball_pos]
 	cmp  ah, 0x00
 	je   .wall_bounce
-	cmp  ah, [display_width]
-	jne  .move
-.wall_bounce:					; changing the direction of the ball when bouncing off the walls
+	cmp  ah, 0x18
+	jne  .return
+.wall_bounce:
 	mov  ax, [ball_dir]
-	xor  ax, 0x0001
-	mov  [ball_dir], al
-.move:
-	mov  ax, [ball_pos]
-	mov  bx, [ball_dir]
-	cmp  bx, 0x0000
-	je   .move_tl
-	cmp  bx, 0x0100
-	je   .move_tr
-	cmp  bx, 0x0101
-	je   .move_bl
-	jmp  .move_br
-.move_tl:
-	sub  ax, 0x0101
-	ret
-.move_tr:
-	sub  al, 0x01
-	add  ah, 0x01
-	ret
-.move_bl:
-	add  al, 0x01
-	sub  ah, 0x01
-	ret
-.move_br:
-	sub  ax, 0x0101
+	xor  ah, 0x01
+	mov  [ball_dir], ax
+.return:
 	ret
 
 update_bats:
@@ -171,11 +151,35 @@ update_bats:
 .return:
 	ret
 
+move_ball:
+	mov  ax, [ball_pos]
+	mov  bx, [ball_dir]
+	cmp  bl, 0x01
+	je   .move_right
+.move_left:
+	dec  al
+	jmp  .move_y
+.move_right:
+	inc  al
+.move_y:
+	cmp  bh, 0x01
+	je   .move_down
+.move_up:
+	dec  ah
+	jmp  .return
+.move_down:
+	inc  ah
+.return:
+	mov  [ball_pos], ax
+	ret
+
+
 ; BASIC DISPLAY FUNCTIONS
 clear_display:
 	mov  ax, 0x0700				; clear display
 	mov  bh, 0x0C				; !!!light red on black!!!
 	xor  cx, cx					; set cx to top left (0, 0)
+	mov  dh, 0x1A
 	mov  dl, [display_width]	; set dx to bottom right (23, 79)
 	int  0x10
 	xor  dx, dx					; set dx to top left (0, 0)
@@ -204,9 +208,10 @@ print_string:
 
 ; VARIABLES
 	display_width	db 0x00
+	ball_del		dw 0xFFFE
 	lbat_pos		dw 0x0A00				; split x-pos:y-pos
 	rbat_pos		dw 0x0A4F				; ^
-	ball_pos		dw 0x0B01				; ^
+	ball_pos		dw 0x0C02				; ^
 	ball_dir		dw 0x0000				; split x-dir:y-dir
 	left_str		db 'LEFT WINS!', 0x00	; win text
 	right_str		db 'RIGHT WINS!', 0x00	; lose text
