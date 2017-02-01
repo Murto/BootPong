@@ -11,6 +11,7 @@
 	int  0x10					; get screen width
 	mov  [display_width], ah	; save width for later calculations
 	mov  cx, [ball_del]
+	push cx
 
 game_loop:
 	call clear_display			; clear display
@@ -27,13 +28,22 @@ game_loop:
 	call display_bat
 	mov  dx, [ball_pos]
 	call display_ball
-	call win_condition
+	pop  cx
+	dec  cx
+	cmp  cx, 0x0000
+	jne  .sleep
+	mov  cx, [ball_del]
+	dec  cx
+	mov  [ball_del], cx
 	call bounce_ball
 	call move_ball
-	mov  cx, 0x0003
-	mov  dx, 0x0000
+	call win_condition
+.sleep:
+	push cx
+	xor  cx, cx
+	mov  dx, 0x000A
 	mov  ah, 0x86
-	int  0x15					; sleep for 0x00070000 nano seconds (cx:dx)
+	int  0x15					; sleep for 10 nano seconds (cx:dx)
 	jmp  game_loop
 
 ; GAME FUNCTIONS
@@ -208,7 +218,7 @@ print_string:
 
 ; VARIABLES
 	display_width	db 0x00
-	ball_del		dw 0xFFFE
+	ball_del		dw 0x00FF
 	lbat_pos		dw 0x0A00				; split x-pos:y-pos
 	rbat_pos		dw 0x0A4F				; ^
 	ball_pos		dw 0x0C02				; ^
