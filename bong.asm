@@ -160,7 +160,7 @@ update_bats:
 
 .left_down:
 	mov  ax, [lbat_pos]			; move left bat's position into ax
-	cmp  ah, 0x4B				; compare bat y position with 20
+	cmp  ah, 0x15				; compare bat y position with 21
 	je   .return				; if they are equal then return
 
 	inc  ah						; move y position down
@@ -178,7 +178,7 @@ update_bats:
 
 .right_down:
 	mov  ax, [rbat_pos]			; move right bat's position into ax
-	cmp  ah, 0x4B				; compare y position with 20
+	cmp  ah, 0x15				; compare y position with 21
 	je  .return					; if they are equal then return
 
 	inc  ah						; move y position down
