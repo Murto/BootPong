@@ -186,7 +186,7 @@ move_ball:
 ; BASIC DISPLAY FUNCTIONS
 clear_display:
 	mov  ax, 0x0700				; clear display
-	mov  bh, 0x0C				; !!!light red on black!!!
+	mov  bh, 0x02				; !!!light red on black!!!
 	xor  cx, cx					; set cx to top left (0, 0)
 	mov  dh, 0x1A
 	mov  dl, [display_width]	; set dx to bottom right (23, 79)
