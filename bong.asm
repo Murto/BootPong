@@ -33,17 +33,15 @@ game_loop:
 	cmp  cx, 0x0000
 	jne  .sleep
 	mov  cx, [ball_del]
-	dec  cx
-	mov  [ball_del], cx
 	call bounce_ball
 	call move_ball
 	call win_condition
 .sleep:
 	push cx
 	xor  cx, cx
-	mov  dx, 0x000A
+	mov  dx, 0x0002
 	mov  ah, 0x86
-	int  0x15					; sleep for 10 nano seconds (cx:dx)
+	int  0x15					; sleep for 2 nano seconds (cx:dx)
 	jmp  game_loop
 
 ; GAME FUNCTIONS
@@ -92,7 +90,7 @@ bounce_ball:
 	mov  ax, [ball_pos]
 	cmp  al, 0x01
 	je   .left_bat
-	cmp  al, 0x2A
+	cmp  al, 0x4E
 	je   .right_bat
 	jmp  .walls
 .left_bat:
@@ -107,6 +105,7 @@ bounce_ball:
 	mov  ax, [ball_dir]
 	xor  al, 0x01
 	mov  [ball_dir], ax
+	sub  word [ball_del], 0x0004
 .walls:
 	mov  ax, [ball_pos]
 	cmp  ah, 0x00
@@ -218,7 +217,7 @@ print_string:
 
 ; VARIABLES
 	display_width	db 0x00
-	ball_del		dw 0x00FF
+	ball_del		dw 0x00AF
 	lbat_pos		dw 0x0A00				; split x-pos:y-pos
 	rbat_pos		dw 0x0A4F				; ^
 	ball_pos		dw 0x0C02				; ^
