@@ -39,9 +39,12 @@ The winner is whoever does not let the ball go past his bat. When the ball goes 
 *Control Scheme*
 
 left bat up		|	w
+
 left bat down	|	s
 
+
 right bat up	|	i
+
 right bat down	|	k
 
 
